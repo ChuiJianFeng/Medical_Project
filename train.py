@@ -19,7 +19,7 @@ torch.backends.cudnn.benchmark = False
 #args = parse_args()
 #CUDA_DEVICES = args.cuda_devices
 #DATASET_ROOT = args.path
-CUDA_DEVICES = 7
+CUDA_DEVICES = 0
 DATASET_ROOT = './train'
 
 # Initial learning rate
@@ -41,7 +41,7 @@ def adjust_lr(optimizer, epoch):
 
 def train():
     data_transform = transforms.Compose([
-        transforms.Resize((224,224)),
+        transforms.Resize((192,192)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.ToTensor(),
@@ -128,7 +128,7 @@ def train():
     # with open("model_name.txt", "a") as txtfile:
     #     print("{}".format(best_model_name), file=txtfile)
     with open("info.txt", "a") as txtfile2:
-        print("{}".format(summary(model, input_size=(16, 3, 224, 224))), file=txtfile2)
+        print("{}".format(summary(model, input_size=(16, 3, 192, 192))), file=txtfile2)
 
 if __name__ == '__main__':
     train()
