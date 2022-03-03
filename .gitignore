@@ -2,3 +2,5 @@
 *.jpg
 __pycache__/Model_VGG16.cpython-39.pyc
 *.pth
+Checkpoint/model-epoch-15-train.pth
+*.pth

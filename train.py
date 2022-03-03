@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+from Model_resnet import resnet34
 from torchinfo import summary
-from Model_VGG16 import VGG16
+#from Model_VGG16 import VGG16
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -10,6 +11,8 @@ from pathlib import Path
 import copy
 import time
 import os
+from pytorchtools import EarlyStopping
+
 
 ##REPRODUCIBILITY
 torch.manual_seed(0)
@@ -41,9 +44,10 @@ def adjust_lr(optimizer, epoch):
 
 def train():
     data_transform = transforms.Compose([
-        transforms.Resize((192,192)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
+        transforms.Resize((224,224)),
+        # transforms.RandomHorizontalFlip(p=0.5),
+        # transforms.RandomVerticalFlip(p=0.5),
+        # transforms.RandomCrop(30),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
@@ -54,7 +58,10 @@ def train():
     data_loader = DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
 
     #print(train_set.num_classes)
-    model = VGG16(num_classes=train_set.num_classes)
+    model = resnet34(num_classes=train_set.num_classes)
+    # model = models.resnet101(pretrained=True)
+    # fc1 = model.fc.in_features
+    # model.fc = nn.Linear(fc1, 2)
     model = model.cuda(CUDA_DEVICES)
     model.train()
 
@@ -62,7 +69,7 @@ def train():
     best_acc = 0.0
 
     # Training epochs
-    num_epochs = 20
+    num_epochs = 30
     criterion = nn.CrossEntropyLoss()
 
     # Optimizer setting
@@ -87,11 +94,10 @@ def train():
         for i, (inputs, labels) in enumerate(data_loader):
             inputs = Variable(inputs.cuda(CUDA_DEVICES))
             labels = Variable(labels.cuda(CUDA_DEVICES))
-            # inputs = Variable(inputs)
-            # labels = Variable(labels)
-            optimizer.zero_grad()
 
+            optimizer.zero_grad()
             outputs = model(inputs)
+
             _, preds = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
@@ -128,7 +134,7 @@ def train():
     # with open("model_name.txt", "a") as txtfile:
     #     print("{}".format(best_model_name), file=txtfile)
     with open("info.txt", "a") as txtfile2:
-        print("{}".format(summary(model, input_size=(16, 3, 192, 192))), file=txtfile2)
+        print("{}".format(summary(model, input_size=(16, 3, 224, 224))), file=txtfile2)
 
 if __name__ == '__main__':
     train()
