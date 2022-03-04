@@ -10,7 +10,7 @@ import numpy as np
 #
 CUDA_DEVICES = 0
 DATASET_ROOT = './test'
-PATH_TO_WEIGHTS = './model-0.95-best_train_acc.pth' # Your model name
+PATH_TO_WEIGHTS = './model-0.94-best_train_acc.pth' # Your model name
 
 # def __init__(self,PATH_TO_WEIGHTS):
 #     self.PATH = PATH_TO_WEIGHTS
@@ -20,7 +20,7 @@ def test():
     # DATASET_ROOT = './test'
     # PATH_TO_WEIGHTS = self.PATH
     data_transform = transforms.Compose([
-        transforms.Resize((192, 192)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
                              0.229, 0.224, 0.225])

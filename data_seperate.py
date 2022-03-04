@@ -32,11 +32,11 @@ def split_data():
     random.shuffle(cnv)
     random.shuffle(pcv)
 
-    cnv_test = cnv[0:40]
-    pcv_test = pcv[0:40]
+    cnv_test = cnv[0:60]
+    pcv_test = pcv[0:60]
 
-    cnv_train = cnv[40:200]
-    pcv_train = pcv[40:200]
+    cnv_train = cnv[60:200]
+    pcv_train = pcv[60:200]
 
     for i in range(len(cnv_test)):
         img = cv2.imread('all_cnv/' + str(cnv_test[i]) + '.jpg')
