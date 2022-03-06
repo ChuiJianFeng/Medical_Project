@@ -16,11 +16,12 @@ def visualize_loss(train_loss,valid_loss):
 
     # find position of lowest validation loss
     minposs = train_loss.index(min(train_loss)) + 1
+    print("stop checkpoint:: ", minposs)
     plt.axvline(minposs, linestyle='--', color='r', label='Early Stopping Checkpoint')
 
     plt.xlabel('epochs')
     plt.ylabel('loss')
-    plt.ylim(0, 0.5)  # consistent scale
+    plt.ylim(0, 1)  # consistent scale
     plt.xlim(0, len(train_loss) + 1)  # consistent scale
     plt.grid(True)
     plt.legend()

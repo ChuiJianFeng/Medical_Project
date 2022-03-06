@@ -4,11 +4,9 @@ import torch.nn as nn
 import copy
 import time
 import os
-import matplotlib.pyplot as plt
 
-from Model_resnet import resnet34
+from record.R34_basic.Model_ResNet.Model_ResNet import resnet34
 from torchinfo import summary
-#from Model_VGG16 import VGG16
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -36,7 +34,7 @@ checkpoint_interval = 5
 if not os.path.isdir('Checkpoint/'):
     os.mkdir('Checkpoint/')
 
-patience = 20
+patience = 10
 
 
 
@@ -67,8 +65,8 @@ def train():
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.ColorJitter(contrast=0.5, brightness=0.5, hue=0.5),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.ToTensor()
+        #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
     #print(DATASET_ROOT)
     train_set = IMAGE_Dataset(Path(DATASET_ROOT), data_transform)
@@ -87,8 +85,8 @@ def train():
     best_model_params = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
-    # Training epochs
-    num_epochs = 100
+    # Training epoch
+    num_epochs = 50
     criterion = nn.CrossEntropyLoss()
 
     # Optimizer setting
@@ -121,7 +119,8 @@ def train():
 
             training_loss += float(loss.item() * inputs.size(0))
             training_corrects += torch.sum(preds == labels.data)
-            train_losses.append(training_loss /len(train_set))
+            train_losses.append(loss.item())
+
         training_loss = training_loss / len(train_set)
         training_acc = training_corrects.double() /len(train_set)
         print('Training loss: {:.4f}\taccuracy: {:.4f}\n'.format(training_loss,training_acc))
@@ -129,6 +128,7 @@ def train():
         ######################
         # validate the model #
         ######################
+        validing_loss = 0.0
         model.eval()  # prep model for evaluation
         for inputss, labelss in valid_loader:
             inputss = Variable(inputss.cuda(CUDA_DEVICES))
@@ -138,6 +138,7 @@ def train():
             # calculate the loss
             loss = criterion(output, labelss)
             # record validation loss
+            #validing_loss += float(loss.item() * inputs.size(0))
             valid_losses.append(loss.item())
 
         train_loss = np.average(train_losses)
@@ -146,19 +147,21 @@ def train():
         avg_valid_losses.append(valid_loss)
 
         epoch_len = len(str(num_epochs))
-        print_msg = (f'[{epoch:>{epoch_len}}/{num_epochs:>{epoch_len}}] ' +
+        print_msg = (f'[{epoch+1:>{epoch_len}}/{num_epochs:>{epoch_len}}] ' +
                      f'train_loss: {train_loss:.5f} ' +
                      f'valid_loss: {valid_loss:.5f}')
         print(print_msg)
         # clear lists to track next epoch
         train_losses = []
         valid_losses = []
+
         # early_stopping needs the validation loss to check if it has decresed,
         # and if it has, it will make a checkpoint of the current model
         early_stopping(valid_loss, model)
         if early_stopping.early_stop:
             print("Early stopping")
             break
+        print('-' * len('Epoch: {}/{} --- < Starting Time : {} >'.format(epoch + 1,num_epochs,localtime)))
         # Check best accuracy model ( but not the best on test )
         if training_acc > best_acc:
             best_acc = training_acc
@@ -179,11 +182,12 @@ def train():
     model.load_state_dict(best_model_params)
     best_model_name = 'model-{:.2f}-best_train_acc.pth'.format(best_acc)
     torch.save(model, best_model_name)
+    # with open('model_name.txt', 'w') as txtfile:
+    #     print("{}".format(best_model_name), file=txtfile)
+
     with open("info.txt", "a") as txtfile2:
         print("{}".format(summary(model, input_size=(16, 3, 224, 224))), file=txtfile2)
 
-    minposs = train_loss.index(min(train_loss)) + 1
-    print("Early Stopping Checkpoint :", minposs)
     return avg_train_losses, avg_valid_losses
 
 if __name__ == '__main__':

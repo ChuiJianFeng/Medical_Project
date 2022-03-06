@@ -10,10 +10,10 @@ import numpy as np
 #
 CUDA_DEVICES = 0
 DATASET_ROOT = './test'
-PATH_TO_WEIGHTS = './model-0.94-best_train_acc.pth' # Your model name
-
-# def __init__(self,PATH_TO_WEIGHTS):
-#     self.PATH = PATH_TO_WEIGHTS
+PATH_TO_WEIGHTS = './model-0.93-best_train_acc.pth' # Your model name
+# class test_data:
+#     def __init__(self,PATH_TO_WEIGHTS):
+#         self.PATH = PATH_TO_WEIGHTS
 
 def test():
     # CUDA_DEVICES = 0
@@ -22,8 +22,8 @@ def test():
     data_transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                             0.229, 0.224, 0.225])
+        #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+          #                   0.229, 0.224, 0.225])
     ])
     test_set = IMAGE_Dataset(Path(DATASET_ROOT), data_transform)
     data_loader = DataLoader(
@@ -69,6 +69,12 @@ def test():
     print('\nAccuracy on the ALL test images: %.4f %%'
       % (100 * total_correct / total))
 
+    # with open('ACC.txt', 'w') as txtflie:
+    #     for i, c in enumerate(classes):
+    #         print('Accuracy of %5s : %8.4f %%' % (
+    #             c, 100 * class_correct[i] / class_total[i]),txtflie)
+    #     print('\nAccuracy on the ALL test images: %.4f %%'
+    #         % (100 * total_correct / total),txtflie)
 
 
 if __name__ == '__main__':
