@@ -16,8 +16,8 @@ def visualize_loss(train_loss,valid_loss):
 
     # find position of lowest validation loss
     minposs = train_loss.index(min(train_loss)) + 1
-    print("stop checkpoint:: ", minposs)
-    plt.axvline(minposs, linestyle='--', color='r', label='Early Stopping Checkpoint')
+    print("stop checkpoint: ", minposs)
+    plt.axvline(minposs, linestyle='--', color='r', label='Early Stopping Checkpoint1')
 
     plt.xlabel('epochs')
     plt.ylabel('loss')

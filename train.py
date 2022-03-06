@@ -5,7 +5,7 @@ import copy
 import time
 import os
 
-from record.R34_basic.Model_ResNet.Model_ResNet import resnet34
+from Model_ResNet import resnet50
 from torchinfo import summary
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
@@ -76,7 +76,7 @@ def train():
     valid_loader= DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
 
     #print(train_set.num_classes)
-    model = resnet34(num_classes=train_set.num_classes)
+    model = resnet50(num_classes=train_set.num_classes)
     # model = models.resnet101(pretrained=True)
     # fc1 = model.fc.in_features
     # model.fc = nn.Linear(fc1, 2)
@@ -161,7 +161,8 @@ def train():
         if early_stopping.early_stop:
             print("Early stopping")
             break
-        print('-' * len('Epoch: {}/{} --- < Starting Time : {} >'.format(epoch + 1,num_epochs,localtime)))
+        print('\n\n')
+
         # Check best accuracy model ( but not the best on test )
         if training_acc > best_acc:
             best_acc = training_acc

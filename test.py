@@ -69,12 +69,6 @@ def test():
     print('\nAccuracy on the ALL test images: %.4f %%'
       % (100 * total_correct / total))
 
-    # with open('ACC.txt', 'w') as txtflie:
-    #     for i, c in enumerate(classes):
-    #         print('Accuracy of %5s : %8.4f %%' % (
-    #             c, 100 * class_correct[i] / class_total[i]),txtflie)
-    #     print('\nAccuracy on the ALL test images: %.4f %%'
-    #         % (100 * total_correct / total),txtflie)
 
 
 if __name__ == '__main__':
