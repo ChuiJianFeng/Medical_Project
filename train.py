@@ -5,8 +5,10 @@ import copy
 import time
 import os
 
-from Model_ResNet import resnet50
-from torchinfo import summary
+from torch.cuda.amp import autocast, GradScaler
+from record.R18_basic.Model_resnet import resnet18
+from torchsummary import summary
+#from torchinfo import summary
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -21,13 +23,13 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 #args = parse_args()
-#CUDA_DEVICES = args.cuda_devices
+#CUDA_DEVICE = args.cuda_devices
 #DATASET_ROOT = args.path
-CUDA_DEVICES = 0
+CUDA_DEVICE = 0
 DATASET_ROOT = './train'
-
+DATASET_VALID = './val'
 # Initial learning rate
-init_lr = 0.01
+init_lr = 0.001
 
 # Save model every 5 epochs
 checkpoint_interval = 5
@@ -37,8 +39,7 @@ if not os.path.isdir('Checkpoint/'):
 patience = 10
 
 
-
-# Setting learning rate operation
+# Setting learning rate operationvim
 def adjust_lr(optimizer, epoch):
 
     # 1/10 learning rate every 5 epochs
@@ -50,11 +51,9 @@ def adjust_lr(optimizer, epoch):
 def train():
     # to track the training loss as the model trains
     train_losses = []
-    # to track the validation loss as the model trains
     valid_losses = []
     # to track the average training loss per epoch as the model trains
     avg_train_losses = []
-    # to track the average validation loss per epoch as the model trains
     avg_valid_losses = []
     # initialize the early_stopping object
     early_stopping = EarlyStopping(patience=patience, verbose=True)
@@ -66,21 +65,18 @@ def train():
         transforms.RandomVerticalFlip(p=0.5),
         transforms.ColorJitter(contrast=0.5, brightness=0.5, hue=0.5),
         transforms.ToTensor()
-        #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        #lltransforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         ])
-    #print(DATASET_ROOT)
     train_set = IMAGE_Dataset(Path(DATASET_ROOT), data_transform)
-
+    valid_set = IMAGE_Dataset(Path(DATASET_VALID), data_transform)
     # If out of memory , adjusting the batch size smaller
     data_loader = DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
-    valid_loader= DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
+    valid_loader= DataLoader(dataset=valid_set, batch_size=16, shuffle=True, num_workers=1)
 
-    #print(train_set.num_classes)
-    model = resnet50(num_classes=train_set.num_classes)
-    # model = models.resnet101(pretrained=True)
-    # fc1 = model.fc.in_features
-    # model.fc = nn.Linear(fc1, 2)
-    model = model.cuda(CUDA_DEVICES)
+    model = resnet18(num_classes=train_set.num_classes)
+    model = model.cuda(CUDA_DEVICE)
+    with open("info.txt", "w") as txtfile:
+        print("{}".format(summary(model, input_size=(3, 224, 224), device=f'cuda:{CUDA_DEVICE}')), file=txtfile)
 
     best_model_params = copy.deepcopy(model.state_dict())
     best_acc = 0.0
@@ -92,6 +88,7 @@ def train():
     # Optimizer setting
     optimizer = torch.optim.SGD(params=model.parameters(), lr=init_lr, momentum=0.9)
 
+    scaler = GradScaler()
 
     # Log
     with open('TrainingAccuracy.txt','w') as fAcc:
@@ -106,20 +103,32 @@ def train():
         training_loss = 0.0
         training_corrects = 0
         adjust_lr(optimizer, epoch)
+
         model.train()
         for i, (inputs, labels) in enumerate(data_loader):
-            inputs = Variable(inputs.cuda(CUDA_DEVICES))
-            labels = Variable(labels.cuda(CUDA_DEVICES))
+            inputs = inputs.cuda(CUDA_DEVICE)
+            labels = labels.cuda(CUDA_DEVICE)
             optimizer.zero_grad()
-            outputs = model(inputs)
-            _, preds = torch.max(outputs.data, 1)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            with autocast():
+                outputs = model(inputs)
+                _, preds = torch.max(outputs.data, 1)
+                loss = criterion(outputs, labels)
+                training_loss += float(loss.item() * inputs.size(0))
+                training_corrects += torch.sum(preds == labels.data)
+                train_losses.append(loss.item())
 
-            training_loss += float(loss.item() * inputs.size(0))
-            training_corrects += torch.sum(preds == labels.data)
-            train_losses.append(loss.item())
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            # outputs = model(inputs)
+            # _, preds = torch.max(outputs.data, 1)
+            # loss = criterion(outputs, labels)
+            # loss.backward()
+            # optimizer.step()
+            # training_loss += float(loss.item() * inputs.size(0))
+            # training_corrects += torch.sum(preds == labels.data)
+            # train_losses.append(loss.item())
 
         training_loss = training_loss / len(train_set)
         training_acc = training_corrects.double() /len(train_set)
@@ -131,8 +140,8 @@ def train():
         validing_loss = 0.0
         model.eval()  # prep model for evaluation
         for inputss, labelss in valid_loader:
-            inputss = Variable(inputss.cuda(CUDA_DEVICES))
-            labelss = Variable(labelss.cuda(CUDA_DEVICES))
+            inputss = Variable(inputss.cuda(CUDA_DEVICE))
+            labelss = Variable(labelss.cuda(CUDA_DEVICE))
             # forward pass: compute predicted outputs by passing inputs to the model
             output = model(inputss)
             # calculate the loss
@@ -183,11 +192,9 @@ def train():
     model.load_state_dict(best_model_params)
     best_model_name = 'model-{:.2f}-best_train_acc.pth'.format(best_acc)
     torch.save(model, best_model_name)
-    # with open('model_name.txt', 'w') as txtfile:
-    #     print("{}".format(best_model_name), file=txtfile)
 
-    with open("info.txt", "a") as txtfile2:
-        print("{}".format(summary(model, input_size=(16, 3, 224, 224))), file=txtfile2)
+
+
 
     return avg_train_losses, avg_valid_losses
 

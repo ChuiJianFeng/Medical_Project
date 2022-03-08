@@ -16,7 +16,7 @@ PATH_TO_WEIGHTS = './model-0.93-best_train_acc.pth' # Your model name
 #         self.PATH = PATH_TO_WEIGHTS
 
 def test():
-    # CUDA_DEVICES = 0
+    # CUDA_DEVICE = 0
     # DATASET_ROOT = './test'
     # PATH_TO_WEIGHTS = self.PATH
     data_transform = transforms.Compose([
