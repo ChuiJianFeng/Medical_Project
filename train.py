@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,9 +8,9 @@ import time
 import os
 
 from torch.cuda.amp import autocast, GradScaler
-from record.R18_basic.Model_resnet import resnet18
-from torchsummary import summary
-#from torchinfo import summary
+#from record.R18_basic.Model_resnet import resnet18
+from resnet import resnet18
+from summary import summary
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
@@ -28,6 +30,7 @@ torch.backends.cudnn.benchmark = False
 CUDA_DEVICE = 0
 DATASET_ROOT = './train'
 DATASET_VALID = './val'
+
 # Initial learning rate
 init_lr = 0.001
 
@@ -74,10 +77,10 @@ def train():
     valid_loader= DataLoader(dataset=valid_set, batch_size=16, shuffle=True, num_workers=1)
 
     model = resnet18(num_classes=train_set.num_classes)
-    model = model.cuda(CUDA_DEVICE)
-    with open("info.txt", "w") as txtfile:
-        print("{}".format(summary(model, input_size=(3, 224, 224), device=f'cuda:{CUDA_DEVICE}')), file=txtfile)
 
+    with open("info.txt", "w") as txtfile:
+        print(summary(model, input_size=(3, 224, 224), device='cpu')[1], file=txtfile)
+    model = model.cuda(CUDA_DEVICE)
     best_model_params = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
@@ -138,16 +141,13 @@ def train():
         # validate the model #
         ######################
         validing_loss = 0.0
-        model.eval()  # prep model for evaluation
+        model.eval()
         for inputss, labelss in valid_loader:
             inputss = Variable(inputss.cuda(CUDA_DEVICE))
             labelss = Variable(labelss.cuda(CUDA_DEVICE))
-            # forward pass: compute predicted outputs by passing inputs to the model
+
             output = model(inputss)
-            # calculate the loss
             loss = criterion(output, labelss)
-            # record validation loss
-            #validing_loss += float(loss.item() * inputs.size(0))
             valid_losses.append(loss.item())
 
         train_loss = np.average(train_losses)
@@ -183,7 +183,6 @@ def train():
         with open('TrainingLoss.txt','a') as fLoss:
             print('{:.4f} '.format(training_loss), file = fLoss)
 
-
         # Checkpoint
         if (epoch + 1) % checkpoint_interval == 0:
             torch.save(model, 'Checkpoint/model-epoch-{:d}-train.pth'.format(epoch + 1))
@@ -193,10 +192,9 @@ def train():
     best_model_name = 'model-{:.2f}-best_train_acc.pth'.format(best_acc)
     torch.save(model, best_model_name)
 
-
-
-
     return avg_train_losses, avg_valid_losses
+
+
 
 if __name__ == '__main__':
     t_lossm, v_loss = train()

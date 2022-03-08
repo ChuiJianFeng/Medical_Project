@@ -40,3 +40,5 @@ def rotate_img(img):
 if __name__ == '__main__':
     read_directory('test/cnv')
     read_directory('test/pcv')
+
+
