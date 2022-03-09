@@ -8,8 +8,8 @@ import time
 import os
 
 from torch.cuda.amp import autocast, GradScaler
-#from record.R18_basic.Model_resnet import resnet18
-from resnet import resnet34
+from Model_ResNet import resnet18
+#from resnet import resnet34
 from summary import summary
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
@@ -76,7 +76,7 @@ def train():
     data_loader = DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
     valid_loader= DataLoader(dataset=valid_set, batch_size=16, shuffle=True, num_workers=1)
 
-    model = resnet34(num_classes=train_set.num_classes)
+    model = resnet18(num_classes=train_set.num_classes)
 
     with open("info.txt", "w") as txtfile:
         print(summary(model, input_size=(3, 224, 224), device='cpu')[1], file=txtfile)
@@ -112,26 +112,26 @@ def train():
             inputs = inputs.cuda(CUDA_DEVICE)
             labels = labels.cuda(CUDA_DEVICE)
             optimizer.zero_grad()
-            # with autocast():
-            #     outputs = model(inputs)
-            #     _, preds = torch.max(outputs.data, 1)
-            #     loss = criterion(outputs, labels)
-            #     training_loss += float(loss.item() * inputs.size(0))
-            #     training_corrects += torch.sum(preds == labels.data)
-            #     train_losses.append(loss.item())
-            #
-            # scaler.scale(loss).backward()
-            # scaler.step(optimizer)
-            # scaler.update()
+            with autocast():
+                outputs = model(inputs)
+                _, preds = torch.max(outputs.data, 1)
+                loss = criterion(outputs, labels)
+                training_loss += float(loss.item() * inputs.size(0))
+                training_corrects += torch.sum(preds == labels.data)
+                train_losses.append(loss.item())
 
-            outputs = model(inputs)
-            _, preds = torch.max(outputs.data, 1)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            training_loss += float(loss.item() * inputs.size(0))
-            training_corrects += torch.sum(preds == labels.data)
-            train_losses.append(loss.item())
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            # outputs = model(inputs)
+            # _, preds = torch.max(outputs.data, 1)
+            # loss = criterion(outputs, labels)
+            # loss.backward()
+            # optimizer.step()
+            # training_loss += float(loss.item() * inputs.size(0))
+            # training_corrects += torch.sum(preds == labels.data)
+            # train_losses.append(loss.item())
 
         training_loss = training_loss / len(train_set)
         training_acc = training_corrects.double() /len(train_set)

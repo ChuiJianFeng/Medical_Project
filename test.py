@@ -10,7 +10,7 @@ import numpy as np
 #
 CUDA_DEVICES = 0
 DATASET_ROOT = './test'
-PATH_TO_WEIGHTS = './model-0.93-best_train_acc.pth' # Your model name
+PATH_TO_WEIGHTS = './model-0.94-best_train_acc.pth' # Your model name
 # class test_data:
 #     def __init__(self,PATH_TO_WEIGHTS):
 #         self.PATH = PATH_TO_WEIGHTS
