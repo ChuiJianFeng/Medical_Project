@@ -9,7 +9,7 @@ import os
 
 from torch.cuda.amp import autocast, GradScaler
 #from record.R18_basic.Model_resnet import resnet18
-from resnet import resnet18
+from resnet import resnet34
 from summary import summary
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
@@ -76,7 +76,7 @@ def train():
     data_loader = DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
     valid_loader= DataLoader(dataset=valid_set, batch_size=16, shuffle=True, num_workers=1)
 
-    model = resnet18(num_classes=train_set.num_classes)
+    model = resnet34(num_classes=train_set.num_classes)
 
     with open("info.txt", "w") as txtfile:
         print(summary(model, input_size=(3, 224, 224), device='cpu')[1], file=txtfile)
