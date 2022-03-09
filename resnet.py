@@ -157,12 +157,12 @@ class Bottleneck(nn.Module):
 
         if self.downsample is not None:
             identity = self.downsample(x)
-        external = self.conv4(identity)
-        external = self.bn4(external)
-        external = self.relu(external)
-        out += external
+        # external = self.conv4(identity)
+        # external = self.bn4(external)
+        # external = self.relu(external)
+        # out += external
 
-        #out += identity
+        out += identity
         out = self.relu(out)
 
         return out

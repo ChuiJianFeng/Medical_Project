@@ -5,24 +5,24 @@ import shutil
 import os, sys
 
 
-def rename(name):
+def rename(Path):
 
-    filelist = os.listdir(name)
+    filelist = os.listdir(Path)
     total_num = len(filelist)
 
     i = 1
 
     for item in filelist:
         if item.endswith('.jpg'):
-            src = os.path.join(os.path.abspath(name), item)
+            src = os.path.join(os.path.abspath(Path), item)
             if i < 2000:
-                dst = os.path.join(os.path.abspath(name), str(i) + '.png')
+                dst = os.path.join(os.path.abspath(Path), str(i) + '.png')
             os.rename(src, dst)
             print('converting %s to %s ...' % (src, dst))
         elif item.endswith('.png'):
-            src = os.path.join(os.path.abspath(name), item)
+            src = os.path.join(os.path.abspath(Path), item)
             if i < 2000:
-                dst = os.path.join(os.path.abspath(name), str(i) + '.png')
+                dst = os.path.join(os.path.abspath(Path), str(i) + '.png')
             os.rename(src, dst)
             print('converting %s to %s ...' % (src, dst))
         i = i + 1
@@ -71,9 +71,9 @@ def split_data():
     cnv_train = cnv[267:896]
     pcv_train = pcv[247:822]
 
-    file = ['all_cnv', 'all_pcv']
+    file_path = ['all_cnv', 'all_pcv']
     for i in range(2):
-        rename(file[i])
+        rename(file_path[i])
 
     for i in range(len(cnv_test)):
         img = cv2.imread('all_cnv/' + str(cnv_test[i]) + '.png')
