@@ -8,8 +8,8 @@ import time
 import os
 
 from torch.cuda.amp import autocast, GradScaler
-#from Model_ResNet import resnet18
-from resnet import resnet18
+from Model_ResNet import resnet34
+#from resnet import resnet18
 from summary import summary
 from dataset import IMAGE_Dataset
 from torch.autograd import Variable
@@ -27,7 +27,7 @@ torch.backends.cudnn.benchmark = False
 #args = parse_args()
 #CUDA_DEVICE = args.cuda_devices
 #DATASET_ROOT = args.path
-CUDA_DEVICE = 3
+CUDA_DEVICE = 0
 DATASET_ROOT = './train'
 DATASET_VALID = './val'
 
@@ -39,7 +39,7 @@ checkpoint_interval = 5
 if not os.path.isdir('Checkpoint/'):
     os.mkdir('Checkpoint/')
 
-patience = 20
+patience = 25
 
 
 # Setting learning rate operationvim
@@ -63,7 +63,7 @@ def train():
 
     data_transform = transforms.Compose([
         transforms.Resize((224,224)),
-        #transforms.RandomCrop((202,202)),
+        transforms.RandomRotation(degrees=30),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
        # transforms.ColorJitter(contrast=0.5, brightness=0.5, hue=0.5),
@@ -76,7 +76,9 @@ def train():
     data_loader = DataLoader(dataset=train_set, batch_size=16, shuffle=True, num_workers=1)
     valid_loader= DataLoader(dataset=valid_set, batch_size=16, shuffle=True, num_workers=1)
 
-    model = resnet18(num_classes=train_set.num_classes)
+    step_size = 4 * len(data_loader)
+
+    model = resnet34(num_classes=train_set.num_classes)
 
     with open("info.txt", "w") as txtfile:
         print(summary(model, input_size=(3, 224, 224), device='cpu')[1], file=txtfile)
@@ -85,14 +87,13 @@ def train():
     best_acc = 0.0
 
     # Training epoch
-    num_epochs = 50
+    num_epochs = 100
     criterion = nn.CrossEntropyLoss()
 
     # Optimizer setting
     optimizer = torch.optim.SGD(params=model.parameters(), lr=init_lr, momentum=0.9)
-
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.01, max_lr=0.0025,step_size_up=step_size)
     scaler = GradScaler()
-
     # Log
     with open('TrainingAccuracy.txt','w') as fAcc:
         print('Accuracy\n', file = fAcc)
@@ -112,26 +113,27 @@ def train():
             inputs = inputs.cuda(CUDA_DEVICE)
             labels = labels.cuda(CUDA_DEVICE)
             optimizer.zero_grad()
-            # with autocast():
-            #     outputs = model(inputs)
-            #     _, preds = torch.max(outputs.data, 1)
-            #     loss = criterion(outputs, labels)
-            #     training_loss += float(loss.item() * inputs.size(0))
-            #     training_corrects += torch.sum(preds == labels.data)
-            #     train_losses.append(loss.item())
-            #
-            # scaler.scale(loss).backward()
-            # scaler.step(optimizer)
-            # scaler.update()
+            with autocast():
+                outputs = model(inputs)
+                _, preds = torch.max(outputs.data, 1)
+                loss = criterion(outputs, labels)
+                training_loss += float(loss.item() * inputs.size(0))
+                training_corrects += torch.sum(preds == labels.data)
+                train_losses.append(loss.item())
 
-            outputs = model(inputs)
-            _, preds = torch.max(outputs.data, 1)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            training_loss += float(loss.item() * inputs.size(0))
-            training_corrects += torch.sum(preds == labels.data)
-            train_losses.append(loss.item())
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            scheduler.step()
+
+            # outputs = model(inputs)
+            # _, preds = torch.max(outputs.data, 1)
+            # loss = criterion(outputs, labels)
+            # loss.backward()
+            # optimizer.step()
+            # training_loss += float(loss.item() * inputs.size(0))
+            # training_corrects += torch.sum(preds == labels.data)
+            # train_losses.append(loss.item())
 
         training_loss = training_loss / len(train_set)
         training_acc = training_corrects.double() /len(train_set)
